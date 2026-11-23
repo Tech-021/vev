@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require("node:fs");
 
+// The release directory contains only the build artifact. Load runtime
+// secrets from the server-owned file before Next.js starts; this file is never
+// committed or uploaded by CI/CD.
+require("dotenv").config({ path: "/var/www/vev/.env.local" });
+
 const appCwd = fs.existsSync("/var/www/vev/current")
   ? "/var/www/vev/current"
   : "/var/www/vev";

@@ -38,6 +38,14 @@ jobs:
       - name: Generate Next.js route types
         run: npx next typegen
 
+      - name: Validate build environment
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          test -n "$NEXT_PUBLIC_SUPABASE_URL" || { echo "NEXT_PUBLIC_SUPABASE_URL is missing" >&2; exit 1; }
+          test -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" || { echo "NEXT_PUBLIC_SUPABASE_ANON_KEY is missing" >&2; exit 1; }
+
       - name: Type-check
         run: npm run typecheck
 
@@ -121,7 +129,10 @@ jobs:
           ln -sfnT "$RELEASE_DIR" "$APP_ROOT/current"
 
           export PM2_HOME=/home/developer/.pm2
-          /usr/bin/pm2 reload "$APP_ROOT/ecosystem.config.cjs" --update-env
+          # Recreate the process so PM2 evaluates the new /var/www/vev/current
+          # symlink and does not retain the previous release's working directory.
+          /usr/bin/pm2 delete vev || true
+          /usr/bin/pm2 start "$APP_ROOT/ecosystem.config.cjs" --update-env
           /usr/bin/pm2 save
 
           for attempt in 1 2 3 4 5; do
